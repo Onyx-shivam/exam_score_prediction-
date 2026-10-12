@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -9,107 +8,145 @@ st.set_page_config(
     page_title="KNN Prediction Studio",
     page_icon="🎯",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 MODEL_PATH = Path(__file__).parent / "knn.pkl"
 
-# Custom UI styling
+# ---------------------------------------------------------------
+# Styling
+# Colors used:  text #17252a | teal #1f6f6b | dark teal #144e4b
+#               page #f3f6f8 | border #dde5e9 | muted #5b6b73
+# ---------------------------------------------------------------
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Figtree:wght@400;500;600;700&display=swap');
 
+/* Page */
 .stApp {
-    background:
-        radial-gradient(ellipse at top left, #e8eaff, transparent 40%),
-        #f6f8fc;
-    font-family: 'DM Sans', sans-serif;
+    background: #f3f6f8;
+    font-family: 'Figtree', sans-serif;
 }
-
 .block-container {
-    max-width: 1250px;
+    max-width: 1200px;
     padding-top: 2rem;
     padding-bottom: 3rem;
 }
+#MainMenu, footer, header[data-testid="stHeader"] {
+    visibility: hidden;
+}
 
+/* Headings and text in the main area (always dark, so they stay readable) */
+.stApp h1, .stApp h2, .stApp h3, .stApp h4 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    color: #17252a;
+}
+[data-testid="stWidgetLabel"] p {
+    color: #17252a !important;
+    font-weight: 600;
+    font-size: 0.92rem;
+}
+[data-testid="stCaptionContainer"] {
+    color: #5b6b73 !important;
+}
+
+/* Hero banner */
 .hero {
-    background: linear-gradient(120deg, #111827, #312e81, #2563eb);
-    padding: 35px;
-    border-radius: 24px;
-    color: black;
-    margin-bottom: 28px;
-    box-shadow: 0 18px 40px rgba(49, 46, 129, 0.25);
-}
-
-.hero h1 {
-    font-family: 'Manrope', sans-serif;
-    font-size: 2.8rem;
-    font-weight: 800;
-    margin-bottom: 8px;
-}
-
-.hero p {
-    color: #dbeafe;
-    font-size: 1rem;
-}
-
-.card {
-    background: white;
-    border: 1px solid #e7eaf3;
+    background: #144e4b;
+    padding: 34px 38px;
     border-radius: 20px;
-    padding: 25px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
-    margin-bottom: 20px;
+    margin-bottom: 26px;
+}
+.hero h1 {
+    color: #ffffff !important;
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 0 0 8px 0;
+    padding: 0;
+}
+.hero p {
+    color: #cfe5e3 !important;
+    font-size: 1.05rem;
+    margin: 0;
+    max-width: 620px;
 }
 
-div[data-testid="stMetric"] {
-    background: white;
-    padding: 20px;
-    border-radius: 16px;
-    border: 1px solid #e7eaf3;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+/* The form is the card */
+div[data-testid="stForm"] {
+    background: #ffffff;
+    border: 1px solid #dde5e9;
+    border-radius: 18px;
+    padding: 28px 30px 24px 30px;
 }
 
-.stButton > button,
+/* Group titles inside the form */
+.group-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #144e4b;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+    border-bottom: 2px solid #e4efee;
+}
+
+/* Input boxes: white with dark text */
+div[data-baseweb="input"],
+div[data-baseweb="select"] > div {
+    background: #f8fafb !important;
+    border-radius: 10px !important;
+    border: 1px solid #dde5e9 !important;
+}
+div[data-baseweb="input"] input,
+div[data-baseweb="select"] div {
+    color: #17252a !important;
+}
+div[data-baseweb="input"] button {
+    background: transparent !important;
+    color: #17252a !important;
+}
+
+/* Submit button */
 div[data-testid="stFormSubmitButton"] > button {
-    background: linear-gradient(100deg, #4f46e5, #2563eb);
-    color: black;
+    background: #1f6f6b;
     border: none;
     border-radius: 12px;
     padding: 12px 20px;
     font-weight: 700;
-    box-shadow: 0 8px 18px rgba(79, 70, 229, 0.22);
-    transition: 0.2s ease;
 }
-
-.stButton > button:hover,
+div[data-testid="stFormSubmitButton"] > button p {
+    color: #ffffff !important;
+    font-size: 1rem;
+}
 div[data-testid="stFormSubmitButton"] > button:hover {
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 12px 24px rgba(79, 70, 229, 0.3);
+    background: #144e4b;
 }
 
-div[data-testid="stSidebar"] {
-    background: #111827;
+/* Metric card */
+div[data-testid="stMetric"] {
+    background: #f1f8f7;
+    border: 1px solid #cfe5e3;
+    border-radius: 14px;
+    padding: 18px 20px;
+}
+div[data-testid="stMetricValue"] {
+    color: #144e4b !important;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
+}
+div[data-testid="stMetricLabel"] p {
+    color: #5b6b73 !important;
 }
 
-div[data-testid="stSidebar"] * {
-    color: #f8fafc;
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background: #0f2f2e;
 }
-
-div[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
-    color: #cbd5e1;
+section[data-testid="stSidebar"] * {
+    color: #e6f1f0 !important;
 }
-
-h2, h3 {
-    font-family: 'Manrope', sans-serif;
-}
-
-.footer {
-    color: #64748b;
-    text-align: center;
-    padding: 20px;
-    font-size: 13px;
+section[data-testid="stSidebar"] hr {
+    border-color: #2a5553;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -122,224 +159,197 @@ def load_model():
         return pickle.load(file)
 
 
+# ---------------------------------------------------------------
+# One input widget for each feature name
+# ---------------------------------------------------------------
+def add_input(feature):
+    name = str(feature).lower()
+    key = "input_" + str(feature)
+
+    if name == "age":
+        return st.number_input("Age", min_value=10, max_value=100,
+                               value=21, step=1, key=key)
+
+    if name == "gender":
+        return st.selectbox("Gender (encoded)", [0, 1], key=key)
+
+    if name == "course":
+        return st.number_input("Course (encoded category)", min_value=0,
+                               max_value=100, value=0, step=1, key=key)
+
+    if name == "study_hours":
+        return st.slider("Study hours per day", 0.0, 24.0,
+                         3.0, 0.5, key=key)
+
+    if name == "class_attendance":
+        return st.slider("Class attendance (%)", 0, 100,
+                         80, 5, key=key)
+
+    if name == "study_method":
+        return st.number_input("Study method (encoded category)",
+                               min_value=0, max_value=100,
+                               value=0, step=1, key=key)
+
+    if name == "exam_difficulty":
+        return st.selectbox("Exam difficulty (encoded)",
+                            [0, 1, 2, 3, 4], key=key)
+
+    if name == "sleep_hours":
+        return st.slider("Sleep hours per night", 0.0, 16.0,
+                         7.0, 0.5, key=key)
+
+    if name == "sleep_quality":
+        return st.selectbox("Sleep quality (encoded)",
+                            [0, 1, 2, 3, 4], key=key)
+
+    if name == "facility_rating":
+        return st.selectbox("Facility rating (encoded)",
+                            [0, 1, 2, 3, 4], key=key)
+
+    if name in ("internet_access", "internet_accesss"):
+        return st.selectbox(str(feature) + " (encoded)", [0, 1], key=key)
+
+    # Any other feature gets a plain number box
+    return st.number_input(str(feature) + " (numeric)", value=0.0, key=key)
+
+
 def main():
+    # ---------- Header ----------
     st.markdown("""
     <div class="hero">
-        <p>🎯 MACHINE LEARNING · PREDICTION SYSTEM</p>
         <h1>KNN Prediction Studio</h1>
-        <p>Enter your feature values and generate a prediction
-        using your trained K-Nearest Neighbors model.</p>
+        <p>Fill in the student details below and get a prediction
+        from your trained K-Nearest Neighbors model.</p>
     </div>
     """, unsafe_allow_html=True)
 
+    # ---------- Load model ----------
     if not MODEL_PATH.exists():
-        st.error("knn.pkl not found. Place it beside app.py.")
+        st.error("knn.pkl not found. Place it in the same folder as app.py.")
         st.stop()
 
     try:
         model = load_model()
     except Exception as exc:
-        st.error("Unable to load the model. Check its compatibility.")
+        st.error("Unable to load the model. Check that the library versions match the ones used for training.")
         st.code(str(exc))
         st.stop()
 
-    # Use original feature names when available.
+    # ---------- Feature names ----------
     default_features = [
         "age", "gender", "course", "study_hours",
         "class_attendance", "internet_access",
         "sleep_hours", "sleep_quality", "study_method",
-        "facility_rating", "exam_difficulty", "internet_accesss"
+        "facility_rating", "exam_difficulty", "internet_accesss",
     ]
-
-    features = list(
-        getattr(model, "feature_names_in_", default_features)
-    )
-
+    features = list(getattr(model, "feature_names_in_", default_features))
     expected_count = getattr(model, "n_features_in_", len(features))
 
     if len(features) != expected_count:
         st.error("Feature count mismatch. Check your model's training schema.")
         st.stop()
 
+    # ---------- Sidebar ----------
     with st.sidebar:
         st.markdown("## 🎯 KNN Studio")
-        st.write("Your machine learning dashboard")
+        st.write("Prediction dashboard")
         st.divider()
-        st.markdown("### Model information")
-        st.write(f"**Algorithm:** {type(model).__name__}")
-        st.write(f"**Input features:** {expected_count}")
+        st.markdown("### Model")
+        st.write("**Algorithm:** " + type(model).__name__)
+        st.write("**Input features:** " + str(expected_count))
         st.divider()
-        st.caption(
-            "Use the same feature order, categorical encodings "
-            "and numerical scales as your training data."
-        )
+        st.caption("Use the same feature order, encodings and scales "
+                   "as your training data.")
 
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("🧑‍🎓 Student Profile")
-    st.caption("Complete the following fields to generate a prediction.")
+    # ---------- Group the features ----------
+    group_plan = [
+        ("Personal details", ["age", "gender", "course"]),
+        ("Study habits", ["study_hours", "class_attendance",
+                          "study_method", "exam_difficulty"]),
+        ("Lifestyle and environment", ["sleep_hours", "sleep_quality",
+                                       "facility_rating", "internet_access",
+                                       "internet_accesss"]),
+    ]
 
+    groups = []
+    used = []
+    for title, names in group_plan:
+        members = []
+        for f in features:
+            if str(f).lower() in names:
+                members.append(f)
+                used.append(f)
+        if len(members) > 0:
+            groups.append((title, members))
+
+    # features that did not match any group
+    others = []
+    for f in features:
+        if f not in used:
+            others.append(f)
+    if len(others) > 0:
+        groups.append(("Other features", others))
+
+    # ---------- Input form ----------
     values = {}
 
-    def add_input(feature, key):
-        name = str(feature).lower()
-
-        if name == "age":
-            return st.number_input(
-                "Age", min_value=10, max_value=100,
-                value=21, step=1, key=key
-            )
-
-        if name == "gender":
-            return st.selectbox(
-                "Gender (encoded)", [0, 1], key=key
-            )
-
-        if name == "course":
-            return st.number_input(
-                "Course (encoded category)", min_value=0,
-                max_value=100, value=0, step=1, key=key
-            )
-
-        if name == "study_hours":
-            return st.slider(
-                "Study hours per day", 0.0, 24.0,
-                3.0, 0.5, key=key
-            )
-
-        if name == "class_attendance":
-            return st.slider(
-                "Class attendance (%)", 0, 100,
-                80, 5, key=key
-            )
-
-        if name in ("internet_access", "internet_accesss"):
-            return st.selectbox(
-                f"{feature} (encoded)", [0, 1], key=key
-            )
-
-        if name == "sleep_hours":
-            return st.slider(
-                "Sleep hours per night", 0.0, 16.0,
-                7.0, 0.5, key=key
-            )
-
-        if name == "sleep_quality":
-            return st.selectbox(
-                "Sleep quality (encoded)", [0, 1, 2, 3, 4],
-                key=key
-            )
-
-        if name == "study_method":
-            return st.number_input(
-                "Study method (encoded category)",
-                min_value=0, max_value=100,
-                value=0, step=1, key=key
-            )
-
-        if name == "facility_rating":
-            return st.selectbox(
-                "Facility rating (encoded)",
-                [0, 1, 2, 3, 4], key=key
-            )
-
-        if name == "exam_difficulty":
-            return st.selectbox(
-                "Exam difficulty (encoded)",
-                [0, 1, 2, 3, 4], key=key
-            )
-
-        return st.number_input(
-            f"{feature} (numeric)",
-            value=0.0, key=key
-        )
-
-    midpoint = (len(features) + 1) // 2
-
     with st.form("knn_prediction_form"):
-        left, right = st.columns(2, gap="large")
+        columns = st.columns(len(groups), gap="large")
 
-        with left:
-            st.markdown("#### 📋 Personal & Learning Details")
-            for feature in features[:midpoint]:
-                values[feature] = add_input(
-                    feature, f"left_{feature}"
-                )
+        for i in range(len(groups)):
+            title, members = groups[i]
+            with columns[i]:
+                st.markdown('<div class="group-title">' + title + '</div>',
+                            unsafe_allow_html=True)
+                for feature in members:
+                    values[feature] = add_input(feature)
 
-        with right:
-            st.markdown("#### 📚 Additional Details")
-            for feature in features[midpoint:]:
-                values[feature] = add_input(
-                    feature, f"right_{feature}"
-                )
+        submitted = st.form_submit_button("Generate prediction",
+                                          use_container_width=True)
 
-        submitted = st.form_submit_button(
-            "✨ Generate Prediction",
-            use_container_width=True
-        )
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
+    # ---------- Result ----------
     if submitted:
         try:
             input_df = pd.DataFrame(
                 [[values[f] for f in features]],
-                columns=features
+                columns=features,
             )
 
-            prediction = np.asarray(
-                model.predict(input_df)
-            ).reshape(-1)
+            prediction = np.asarray(model.predict(input_df)).reshape(-1)
 
             if prediction.size == 0:
                 raise ValueError("The model returned no prediction.")
 
             result = prediction[0]
 
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("📊 Prediction Results")
+            st.write("")
+            with st.container(border=True):
+                st.subheader("Prediction result")
 
-            col1, col2 = st.columns([1, 2])
+                col1, col2 = st.columns([1, 2], gap="large")
 
-            with col1:
-                if np.issubdtype(
-                    np.asarray(result).dtype, np.number
-                ):
-                    st.metric(
-                        "Predicted Value",
-                        f"{float(result):,.3f}"
-                    )
-                else:
-                    st.metric("Predicted Value", str(result))
+                with col1:
+                    if np.issubdtype(np.asarray(result).dtype, np.number):
+                        st.metric("Predicted value", f"{float(result):,.3f}")
+                    else:
+                        st.metric("Predicted value", str(result))
 
-            with col2:
-                st.success("Prediction generated successfully!")
-                st.write(
-                    "Interpret this output according to the target "
-                    "variable used when training your model."
-                )
+                with col2:
+                    st.success("Prediction generated successfully.")
+                    st.write("Read this value according to the target "
+                             "variable your model was trained on.")
 
-            with st.expander("View submitted input values"):
-                st.dataframe(
-                    input_df,
-                    use_container_width=True,
-                    hide_index=True
-                )
-
-            st.markdown("</div>", unsafe_allow_html=True)
+                with st.expander("View submitted input values"):
+                    st.dataframe(input_df, use_container_width=True,
+                                 hide_index=True)
 
         except Exception as exc:
             st.error("Prediction failed. Check your input schema and encodings.")
             st.code(str(exc))
-            st.info(
-                "If preprocessing was used during training, make sure "
-                "the required scaler or encoder is included in the model."
-            )
+            st.info("If you used a scaler or encoder during training, "
+                    "include it in the saved model (for example in a Pipeline).")
 
-    st.markdown("""
-    <div class="footer">
-        Built with Streamlit · Powered by K-Nearest Neighbors
-    </div>
-    """, unsafe_allow_html=True)
+    st.caption("Built with Streamlit and scikit-learn.")
 
 
 if __name__ == "__main__":
