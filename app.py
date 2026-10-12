@@ -36,7 +36,7 @@ st.markdown("""
     background: linear-gradient(120deg, #111827, #312e81, #2563eb);
     padding: 35px;
     border-radius: 24px;
-    color: white;
+    color: black;
     margin-bottom: 28px;
     box-shadow: 0 18px 40px rgba(49, 46, 129, 0.25);
 }
@@ -73,7 +73,7 @@ div[data-testid="stMetric"] {
 .stButton > button,
 div[data-testid="stFormSubmitButton"] > button {
     background: linear-gradient(100deg, #4f46e5, #2563eb);
-    color: white;
+    color: black;
     border: none;
     border-radius: 12px;
     padding: 12px 20px;
