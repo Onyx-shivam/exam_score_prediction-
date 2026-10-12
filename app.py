@@ -170,6 +170,29 @@ def load_model():
         return pickle.load(file)
 
 
+def neighbor_check(model, input_df, pass_mark):
+    # Looks at the K nearest students the model used and counts how many
+    # of them passed. Returns "" if the model type does not allow this.
+    try:
+        if hasattr(model, "steps"):
+            estimator = model.steps[-1][1]
+            data = model[:-1].transform(input_df)
+        else:
+            estimator = model
+            data = input_df
+
+        if "Regressor" not in type(estimator).__name__:
+            return ""
+
+        distances, indexes = estimator.kneighbors(data)
+        neighbor_scores = np.asarray(estimator._y)[indexes[0]]
+        total = len(neighbor_scores)
+        passed = int((neighbor_scores >= pass_mark).sum())
+        return str(passed) + " of " + str(total) + " similar students in the training data passed."
+    except Exception:
+        return ""
+
+
 # ---------------------------------------------------------------
 # One input widget for each feature name
 # ---------------------------------------------------------------
@@ -273,6 +296,9 @@ def main():
         pass_mark = st.number_input("Pass mark (score needed to pass)",
                                     min_value=0.0, max_value=100.0,
                                     value=40.0, step=1.0)
+        margin = st.number_input("Borderline margin (+/- marks)",
+                                 min_value=0.0, max_value=20.0,
+                                 value=3.0, step=0.5)
         st.divider()
         st.caption("Use the same feature order, encodings and scales "
                    "as your training data.")
@@ -324,7 +350,16 @@ def main():
                                           use_container_width=True)
 
     # ---------- Result ----------
+    # Input check: a day only has 24 hours
+    hours_ok = True
     if submitted:
+        if "study_hours" in values and "sleep_hours" in values:
+            if values["study_hours"] + values["sleep_hours"] > 24:
+                hours_ok = False
+                st.error("Study hours plus sleep hours cannot be more than "
+                         "24 in a day. Please correct the values.")
+
+    if submitted and hours_ok:
         try:
             input_df = pd.DataFrame(
                 [[values[f] for f in features]],
@@ -339,19 +374,27 @@ def main():
             result = prediction[0]
 
             # Decide PASS or FAIL
+            neighbor_text = ""
             try:
                 score = float(result)
                 score_text = f"{score:,.2f}"
-                if score >= pass_mark:
+                if score >= pass_mark + margin:
                     status = "PASS"
                     badge_bg = "#dcfce7"
                     badge_text = "#166534"
-                    message = "Predicted score is at or above the pass mark."
+                    message = "Predicted score is clearly above the pass mark."
+                elif score >= pass_mark - margin:
+                    status = "BORDERLINE"
+                    badge_bg = "#fef3c7"
+                    badge_text = "#92400e"
+                    message = ("Predicted score is within " + str(margin) +
+                               " marks of the pass mark. Treat this result with caution.")
                 else:
                     status = "FAIL"
                     badge_bg = "#fee2e2"
                     badge_text = "#991b1b"
-                    message = "Predicted score is below the pass mark."
+                    message = "Predicted score is clearly below the pass mark."
+                neighbor_text = neighbor_check(model, input_df, pass_mark)
             except Exception:
                 # The model gave text (for example "Pass" or "Fail")
                 score_text = str(result)
@@ -366,6 +409,11 @@ def main():
 
             st.write("")
             st.subheader("Result")
+
+            extra = ""
+            if neighbor_text != "":
+                extra = ('<div style="color:#5b6b73;font-size:0.9rem;'
+                         'margin-top:8px;">' + neighbor_text + '</div>')
 
             card = ('<div style="background:#ffffff;border:1px solid #dde5e9;'
                     'border-radius:18px;padding:26px 30px;display:flex;'
@@ -382,7 +430,7 @@ def main():
                     'font-size:1.8rem;font-weight:800;padding:14px 34px;'
                     'border-radius:14px;">' + status + '</div>'
                     '<div style="color:#17252a;font-size:1rem;flex:1;'
-                    'min-width:200px;">' + message + '</div>'
+                    'min-width:200px;">' + message + extra + '</div>'
                     '</div>')
             st.markdown(card, unsafe_allow_html=True)
 
@@ -402,4 +450,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
