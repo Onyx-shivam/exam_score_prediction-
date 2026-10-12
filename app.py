@@ -49,6 +49,17 @@ st.markdown("""
 [data-testid="stCaptionContainer"] {
     color: #5b6b73 !important;
 }
+[data-testid="stMain"] p,
+section.main p,
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] summary * {
+    color: #17252a;
+}
+[data-testid="stExpander"] {
+    background: #ffffff;
+    border: 1px solid #dde5e9;
+    border-radius: 12px;
+}
 
 /* Hero banner */
 .hero {
@@ -258,6 +269,11 @@ def main():
         st.write("**Algorithm:** " + type(model).__name__)
         st.write("**Input features:** " + str(expected_count))
         st.divider()
+        st.markdown("### Result rule")
+        pass_mark = st.number_input("Pass mark (score needed to pass)",
+                                    min_value=0.0, max_value=100.0,
+                                    value=40.0, step=1.0)
+        st.divider()
         st.caption("Use the same feature order, encodings and scales "
                    "as your training data.")
 
@@ -322,26 +338,58 @@ def main():
 
             result = prediction[0]
 
+            # Decide PASS or FAIL
+            try:
+                score = float(result)
+                score_text = f"{score:,.2f}"
+                if score >= pass_mark:
+                    status = "PASS"
+                    badge_bg = "#dcfce7"
+                    badge_text = "#166534"
+                    message = "Predicted score is at or above the pass mark."
+                else:
+                    status = "FAIL"
+                    badge_bg = "#fee2e2"
+                    badge_text = "#991b1b"
+                    message = "Predicted score is below the pass mark."
+            except Exception:
+                # The model gave text (for example "Pass" or "Fail")
+                score_text = str(result)
+                status = str(result).upper()
+                if status == "PASS":
+                    badge_bg = "#dcfce7"
+                    badge_text = "#166534"
+                else:
+                    badge_bg = "#fee2e2"
+                    badge_text = "#991b1b"
+                message = "Result given directly by the model."
+
             st.write("")
-            with st.container(border=True):
-                st.subheader("Prediction result")
+            st.subheader("Result")
 
-                col1, col2 = st.columns([1, 2], gap="large")
+            card = ('<div style="background:#ffffff;border:1px solid #dde5e9;'
+                    'border-radius:18px;padding:26px 30px;display:flex;'
+                    'align-items:center;gap:36px;flex-wrap:wrap;">'
+                    '<div>'
+                    '<div style="color:#5b6b73;font-size:0.9rem;'
+                    'font-weight:600;">Predicted score</div>'
+                    '<div style="color:#144e4b;font-size:2.8rem;'
+                    'font-weight:800;line-height:1.1;">' + score_text + '</div>'
+                    '<div style="color:#5b6b73;font-size:0.85rem;">'
+                    'Pass mark: ' + str(pass_mark) + '</div>'
+                    '</div>'
+                    '<div style="background:' + badge_bg + ';color:' + badge_text + ';'
+                    'font-size:1.8rem;font-weight:800;padding:14px 34px;'
+                    'border-radius:14px;">' + status + '</div>'
+                    '<div style="color:#17252a;font-size:1rem;flex:1;'
+                    'min-width:200px;">' + message + '</div>'
+                    '</div>')
+            st.markdown(card, unsafe_allow_html=True)
 
-                with col1:
-                    if np.issubdtype(np.asarray(result).dtype, np.number):
-                        st.metric("Predicted value", f"{float(result):,.3f}")
-                    else:
-                        st.metric("Predicted value", str(result))
-
-                with col2:
-                    st.success("Prediction generated successfully.")
-                    st.write("Read this value according to the target "
-                             "variable your model was trained on.")
-
-                with st.expander("View submitted input values"):
-                    st.dataframe(input_df, use_container_width=True,
-                                 hide_index=True)
+            st.write("")
+            with st.expander("View submitted input values"):
+                st.dataframe(input_df, use_container_width=True,
+                             hide_index=True)
 
         except Exception as exc:
             st.error("Prediction failed. Check your input schema and encodings.")
@@ -354,3 +402,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
